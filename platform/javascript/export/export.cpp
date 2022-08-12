@@ -459,6 +459,10 @@ void EditorExportPlatformJavaScript::_fix_html(Vector<uint8_t> &p_html, const Re
 	config["args"] = args;
 	config["fileSizes"] = p_file_sizes;
 
+	if (p_preset->get("html/zip_contents")) {
+		config["mainPack"] = p_name + ".zip";
+	}
+
 	String head_include;
 	if (p_preset->get("html/export_icon")) {
 		head_include += "<link id='-gd-engine-icon' rel='icon' type='image/png' href='" + p_name + ".icon.png' />\n";
@@ -665,6 +669,7 @@ void EditorExportPlatformJavaScript::get_export_options(List<ExportOption> *r_op
 	r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "html/canvas_resize_policy", PROPERTY_HINT_ENUM, "None,Project,Adaptive"), 2));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "html/focus_canvas_on_start"), true));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "html/experimental_virtual_keyboard"), false));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "html/zip_contents"), false));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "progressive_web_app/enabled"), false));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "progressive_web_app/offline_page", PROPERTY_HINT_FILE, "*.html"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "progressive_web_app/display", PROPERTY_HINT_ENUM, "Fullscreen,Standalone,Minimal Ui,Browser"), 1));
@@ -773,6 +778,7 @@ Error EditorExportPlatformJavaScript::export_project(const Ref<EditorExportPrese
 		add_message(EXPORT_MESSAGE_ERROR, TTR("Export"), vformat(TTR("Could not write file: \"%s\"."), pck_path));
 		return error;
 	}
+
 	DirAccess *da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
 	for (int i = 0; i < shared_objects.size(); i++) {
 		String dst = base_dir.plus_file(shared_objects[i].path.get_file());
@@ -782,6 +788,18 @@ Error EditorExportPlatformJavaScript::export_project(const Ref<EditorExportPrese
 			memdelete(da);
 			return error;
 		}
+	}
+
+	// Zip PCK
+	if (p_preset->get("html/zip_contents")) {
+		pck_path = base_path + ".zip";
+		error = save_zip(p_preset, pck_path);
+		if (error != OK) {
+			add_message(EXPORT_MESSAGE_ERROR, TTR("Export"), vformat(TTR("Could not write file: \"%s\"."), pck_path));
+			return error;
+		}
+		// Remove unused
+		da->remove(base_path + ".pck");
 	}
 	memdelete(da);
 	da = nullptr;
