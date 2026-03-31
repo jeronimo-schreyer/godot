@@ -35,6 +35,7 @@
 #include "editor/scene/scene_tree_editor.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/check_box.h"
+#include "scene/gui/line_edit.h"
 
 void ReparentDialog::_notification(int p_what) {
 	switch (p_what) {
@@ -48,11 +49,17 @@ void ReparentDialog::_notification(int p_what) {
 	}
 }
 
-void ReparentDialog::_cancel() {
-	hide();
+void ReparentDialog::cancel_pressed() {
+	if (filter_nodes) {
+		filter_nodes->clear();
+	}
 }
 
 void ReparentDialog::_reparent() {
+	if (filter_nodes) {
+		filter_nodes->clear();
+	}
+
 	if (tree->get_selected()) {
 		emit_signal(SNAME("reparent"), tree->get_selected()->get_path(), keep_transform->is_pressed());
 		hide();
@@ -65,8 +72,6 @@ void ReparentDialog::set_current(const HashSet<Node *> &p_selection) {
 }
 
 void ReparentDialog::_bind_methods() {
-	ClassDB::bind_method("_cancel", &ReparentDialog::_cancel);
-
 	ADD_SIGNAL(MethodInfo("reparent", PropertyInfo(Variant::NODE_PATH, "path"), PropertyInfo(Variant::BOOL, "keep_global_xform")));
 }
 
@@ -80,6 +85,14 @@ ReparentDialog::ReparentDialog() {
 	tree->set_update_when_invisible(false);
 	tree->set_show_enabled_subscene(true);
 	tree->get_scene_tree()->connect("item_activated", callable_mp(this, &ReparentDialog::_reparent));
+
+	filter_nodes = memnew(LineEdit);
+	filter_nodes->set_h_size_flags(Control::SIZE_FILL | Control::SIZE_EXPAND);
+	filter_nodes->set_placeholder(TTR("Filter Nodes"));
+	filter_nodes->set_accessibility_name(TTRC("Filter Nodes"));
+	filter_nodes->set_clear_button_enabled(true);
+	filter_nodes->connect(SceneStringName(text_changed), callable_mp(tree, &SceneTreeEditor::set_filter));
+	vbc->add_child(filter_nodes);
 	vbc->add_margin_child(TTR("Select new parent:"), tree, true);
 
 	keep_transform = memnew(CheckBox);

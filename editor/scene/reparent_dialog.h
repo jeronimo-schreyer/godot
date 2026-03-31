@@ -40,9 +40,10 @@ class ReparentDialog : public ConfirmationDialog {
 
 	SceneTreeEditor *tree = nullptr;
 	CheckBox *keep_transform = nullptr;
+	LineEdit *filter_nodes = nullptr;
 
 	void _reparent();
-	void _cancel();
+	void cancel_pressed();
 
 protected:
 	void _notification(int p_what);
